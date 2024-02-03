@@ -66,4 +66,5 @@ async function CameraSetup() {
 
 function Test() {
   console.log("CAMERA STUFF WORKING")
+  return 4;
 }

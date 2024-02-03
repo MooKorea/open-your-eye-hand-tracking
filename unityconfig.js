@@ -3,6 +3,11 @@ export var canvas = document.querySelector("#unity-canvas");
 export var loadingBar = document.querySelector("#unity-loading-bar");
 var warningBanner = document.querySelector("#unity-warning");
 
+function Test() {
+    console.log("CAMERA STUFF WORKING")
+    return 4;
+}
+
 // Shows a temporary message banner/ribbon for a few seconds, or
 // a permanent error message on top of the canvas if type=='error'.
 // If type=='warning', a yellow highlight color is used.
