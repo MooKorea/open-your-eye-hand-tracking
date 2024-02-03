@@ -6,6 +6,14 @@
     <title>Unity WebGL Player | open your EYE</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      #videoid {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        transform: scaleX(-1);
+      }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -23,6 +31,10 @@
         <div id="unity-build-title">open your EYE</div>
       </div>
     </div>
+    <video id="videoid">
+
+    </video>
+    <script type="module" src="/unityconfig.js"></script>
     <script type="module" src="/main.js"></script>
   </body>
 </html>
