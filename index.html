@@ -6,6 +6,14 @@
     <title>Unity WebGL Player | open your EYE</title>
     <link rel="shortcut icon" href="TemplateData/favicon.ico">
     <link rel="stylesheet" href="TemplateData/style.css">
+    <style>
+      #videoid {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        transform: scaleX(-1);
+      }
+    </style>
   </head>
   <body>
     <div id="unity-container" class="unity-desktop">
@@ -23,6 +31,8 @@
         <div id="unity-build-title">open your EYE</div>
       </div>
     </div>
+    <video id="videoid"></video>
+    <script src="https://cdn.jsdelivr.net/npm/handtrackjs@latest/dist/handtrack.min.js"></script>
     <script>
       var container = document.querySelector("#unity-container");
       var canvas = document.querySelector("#unity-canvas");
@@ -58,9 +68,9 @@
       var buildUrl = "Build";
       var loaderUrl = buildUrl + "/open-your-eye-tracking.loader.js";
       var config = {
-        dataUrl: buildUrl + "/open-your-eye-tracking.data.gz",
-        frameworkUrl: buildUrl + "/open-your-eye-tracking.framework.js.gz",
-        codeUrl: buildUrl + "/open-your-eye-tracking.wasm.gz",
+        dataUrl: buildUrl + "/open-your-eye-tracking.data.unityweb",
+        frameworkUrl: buildUrl + "/open-your-eye-tracking.framework.js.unityweb",
+        codeUrl: buildUrl + "/open-your-eye-tracking.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "open your EYE",
@@ -101,10 +111,13 @@
 
       var script = document.createElement("script");
       script.src = loaderUrl;
+
+      var myUnityInstance;
       script.onload = () => {
         createUnityInstance(canvas, config, (progress) => {
           progressBarFull.style.width = 100 * progress + "%";
         }).then((unityInstance) => {
+          myUnityInstance = unityInstance;
           loadingBar.style.display = "none";
           fullscreenButton.onclick = () => {
             unityInstance.SetFullscreen(1);
@@ -114,6 +127,69 @@
         });
       };
       document.body.appendChild(script);
+
+      const defaultParams = {
+        flipHorizontal: true,
+        outputStride: 16,
+        imageScaleFactor: 1,
+        maxNumBoxes: 20,
+        iouThreshold: 0.2,
+        scoreThreshold: 0.6,
+        modelType: "ssd320fpnlite",
+        modelSize: "large",
+        bboxLineWidth: "2",
+        fontSize: 17,
+      };
+
+      let isCameraLoaded = false;
+      let isCameraEnabled = false;
+      const video = document.getElementById("videoid");
+      function ActivateCamera() {
+        console.log("CAMERA ENABLED");
+        CameraSetup();
+        video.style.visibility = "visible";
+        isCameraEnabled = true;
+      }
+
+      function DeactivateCamera() {
+        console.log("CAMERA DISABLED");
+        video.style.visibility = "hidden";
+        isCameraEnabled = false;
+      }
+
+      async function CameraSetup() {
+        if (!isCameraLoaded) {
+          handTrack.startVideo(video);
+        }
+        isCameraLoaded = true;
+
+        video.addEventListener("loadeddata", async () => {
+          const model = await handTrack.load(defaultParams);
+          const width = video.getAttribute("width");
+          const height = video.getAttribute("height");
+
+          setInterval(async () => {
+            if (!isCameraEnabled) return;
+            const predictions = await model.detect(video);
+            const filterFaces = predictions.filter((e) => e.label != "face");
+            const map = filterFaces.map((e) => {
+              let xCenter = (e.bbox[0] + e.bbox[2]) / 2;
+              xCenter = e.bbox[0] / width;
+              let yCenter = (e.bbox[1] + e.bbox[3]) / 2;
+              yCenter = 1 - e.bbox[1] / height;
+              return [xCenter, yCenter];
+            });
+            if (map.length == 0) return;
+            myUnityInstance.SendMessage("Player", "SetCameraX", map[0][0]);
+            myUnityInstance.SendMessage("Player", "SetCameraY", map[0][1]);
+            myUnityInstance.SendMessage("Player", "SetCameraGrab", filterFaces[0].label == "closed" ? 1 : 0)
+            console.log(map);
+          }, 100);
+
+          video.style.width = width / 3 + "px";
+          video.style.height = height / 3 + "px";
+        });
+      }
     </script>
   </body>
 </html>
